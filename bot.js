@@ -23,6 +23,31 @@ if (fs.existsSync(applicationsFile)) {
 // Временное хранилище состояния пользователей
 const userState = {};
 
+// Файл и список администраторов
+const adminsFile = 'admins.json';
+let admins = [];
+if (fs.existsSync(adminsFile)) {
+  try {
+    admins = JSON.parse(fs.readFileSync(adminsFile, 'utf8'));
+  } catch (error) {
+    console.error('Ошибка чтения admins.json:', error.message, error.stack);
+    admins = [];
+  }
+}
+if (process.env.ADMIN_ID) {
+  const mainAdmin = Number(process.env.ADMIN_ID);
+  if (!admins.includes(mainAdmin)) {
+    admins.push(mainAdmin);
+  }
+}
+const saveAdmins = () => {
+  try {
+    fs.writeFileSync(adminsFile, JSON.stringify(admins, null, 2));
+  } catch (error) {
+    console.error('Ошибка сохранения admins.json:', error.message, error.stack);
+  }
+};
+
 // Сохранение заявок в файл
 const saveApplications = () => {
   try {
@@ -128,6 +153,42 @@ bot.command('test', async (ctx) => {
   }
 });
 
+// Назначение администратора командой /macedon <id>
+bot.command('macedon', (ctx) => {
+  const callerId = ctx.from.id;
+  if (!admins.includes(callerId)) {
+    return ctx.reply('У вас нет прав.');
+  }
+  const parts = ctx.message.text.split(/\s+|=/).filter(Boolean);
+  const targetId = Number(parts[1]);
+  if (!targetId) {
+    return ctx.reply('Укажите ID пользователя.');
+  }
+  if (!admins.includes(targetId)) {
+    admins.push(targetId);
+    saveAdmins();
+  }
+  ctx.reply(`Пользователь ${targetId} назначен администратором.`);
+});
+
+// Команда /admin с выбором действий
+bot.command('admin', (ctx) => {
+  const userId = ctx.from.id;
+  if (!admins.includes(userId)) {
+    return ctx.reply('У вас нет прав.');
+  }
+  return ctx.reply('Выберите действие:', {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Привязать домен', callback_data: 'bind_domain' },
+          { text: 'Добавить админа', callback_data: 'add_admin' },
+        ],
+      ],
+    },
+  });
+});
+
 // Обработка callback-запросов
 bot.on('callback_query', async (ctx) => {
   const userId = ctx.from.id;
@@ -140,6 +201,52 @@ bot.on('callback_query', async (ctx) => {
     if (callbackData === 'test_button') {
       console.log(`Тестовая кнопка нажата пользователем ${userId}`);
       await ctx.answerCbQuery('Тестовая кнопка работает!');
+      return;
+    }
+
+    // Админские действия
+    if (callbackData === 'bind_domain') {
+      if (!admins.includes(userId)) {
+        await ctx.answerCbQuery('Нет прав.');
+        return;
+      }
+      await ctx.reply('Привязка домена пока не реализована.');
+      await ctx.answerCbQuery();
+      return;
+    }
+
+    if (callbackData === 'add_admin') {
+      if (!admins.includes(userId)) {
+        await ctx.answerCbQuery('Нет прав.');
+        return;
+      }
+      const userButtons = Object.entries(applications)
+        .filter(([id, data]) => id !== 'admins' && data.username)
+        .map(([id, data]) => [{ text: `@${data.username}`, callback_data: `assign_admin_${id}` }]);
+      if (userButtons.length === 0) {
+        await ctx.reply('Нет пользователей для назначения.');
+      } else {
+        await ctx.reply('Выберите пользователя для назначения администратором:', {
+          reply_markup: { inline_keyboard: userButtons },
+        });
+      }
+      await ctx.answerCbQuery();
+      return;
+    }
+
+    if (callbackData.startsWith('assign_admin_')) {
+      if (!admins.includes(userId)) {
+        await ctx.answerCbQuery('Нет прав.');
+        return;
+      }
+      const targetId = Number(callbackData.replace('assign_admin_', ''));
+      if (!admins.includes(targetId)) {
+        admins.push(targetId);
+        saveAdmins();
+      }
+      const uname = applications[targetId]?.username ? `@${applications[targetId].username}` : targetId;
+      await ctx.reply(`Пользователь ${uname} назначен администратором.`);
+      await ctx.answerCbQuery('Администратор добавлен');
       return;
     }
 
@@ -268,11 +375,13 @@ bot.on('callback_query', async (ctx) => {
             ]);
           });
           await ctx.reply(response, {
+            reply_markup: { inline_keyboard: inlineKeyboard },
+          });
+          await ctx.reply('Выберите действие', {
             reply_markup: {
               keyboard: [
                 [{ text: 'Выбрать сервис' }, { text: 'Мои ссылки' }],
               ],
-              inline_keyboard: inlineKeyboard,
               resize_keyboard: true,
               one_time_keyboard: false,
             },
@@ -425,10 +534,14 @@ bot.on('text', async (ctx) => {
       });
       await ctx.reply(response, {
         reply_markup: {
+          inline_keyboard: inlineKeyboard,
+        },
+      });
+      await ctx.reply('Выберите действие', {
+        reply_markup: {
           keyboard: [
             [{ text: 'Выбрать сервис' }, { text: 'Мои ссылки' }],
           ],
-          inline_keyboard: inlineKeyboard,
           resize_keyboard: true,
           one_time_keyboard: false,
         },
