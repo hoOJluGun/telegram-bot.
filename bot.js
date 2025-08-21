@@ -48,6 +48,16 @@ const saveAdmins = () => {
   }
 };
 
+const buildAdminKeyboard = () => {
+  return Object.entries(applications)
+    .filter(([id, data]) => id !== 'admins' && data.username)
+    .map(([id, data]) => {
+      const isAdmin = admins.includes(Number(id));
+      const marker = isAdmin ? '✅' : '❌';
+      return [{ text: `${marker} @${data.username}`, callback_data: `assign_admin_${id}` }];
+    });
+};
+
 // Сохранение заявок в файл
 const saveApplications = () => {
   try {
@@ -220,9 +230,7 @@ bot.on('callback_query', async (ctx) => {
         await ctx.answerCbQuery('Нет прав.');
         return;
       }
-      const userButtons = Object.entries(applications)
-        .filter(([id, data]) => id !== 'admins' && data.username)
-        .map(([id, data]) => [{ text: `@${data.username}`, callback_data: `assign_admin_${id}` }]);
+      const userButtons = buildAdminKeyboard();
       if (userButtons.length === 0) {
         await ctx.reply('Нет пользователей для назначения.');
       } else {
@@ -240,13 +248,21 @@ bot.on('callback_query', async (ctx) => {
         return;
       }
       const targetId = Number(callbackData.replace('assign_admin_', ''));
-      if (!admins.includes(targetId)) {
-        admins.push(targetId);
-        saveAdmins();
-      }
+      let message;
+      const index = admins.indexOf(targetId);
       const uname = applications[targetId]?.username ? `@${applications[targetId].username}` : targetId;
-      await ctx.reply(`Пользователь ${uname} назначен администратором.`);
-      await ctx.answerCbQuery('Администратор добавлен');
+      if (index === -1) {
+        admins.push(targetId);
+        message = `Пользователь ${uname} назначен администратором.`;
+        await ctx.answerCbQuery('Администратор добавлен');
+      } else {
+        admins.splice(index, 1);
+        message = `Пользователь ${uname} снят с должности администратора.`;
+        await ctx.answerCbQuery('Администратор удалён');
+      }
+      saveAdmins();
+      await ctx.editMessageReplyMarkup({ inline_keyboard: buildAdminKeyboard() });
+      await ctx.reply(message);
       return;
     }
 
