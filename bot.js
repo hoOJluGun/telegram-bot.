@@ -25,6 +25,7 @@ const userState = {};
 
 // Файл и список администраторов
 const adminsFile = 'admins.json';
+const mainAdmin = process.env.ADMIN_ID ? Number(process.env.ADMIN_ID) : null;
 let admins = [];
 if (fs.existsSync(adminsFile)) {
   try {
@@ -34,11 +35,8 @@ if (fs.existsSync(adminsFile)) {
     admins = [];
   }
 }
-if (process.env.ADMIN_ID) {
-  const mainAdmin = Number(process.env.ADMIN_ID);
-  if (!admins.includes(mainAdmin)) {
-    admins.push(mainAdmin);
-  }
+if (mainAdmin && !admins.includes(mainAdmin)) {
+  admins.push(mainAdmin);
 }
 const saveAdmins = () => {
   try {
@@ -166,7 +164,7 @@ bot.command('test', async (ctx) => {
 // Назначение администратора командой /macedon <id>
 bot.command('macedon', (ctx) => {
   const callerId = ctx.from.id;
-  if (!admins.includes(callerId)) {
+  if (!admins.includes(callerId) && callerId !== mainAdmin) {
     return ctx.reply('У вас нет прав.');
   }
   const parts = ctx.message.text.split(/\s+|=/).filter(Boolean);
@@ -184,7 +182,7 @@ bot.command('macedon', (ctx) => {
 // Команда /admin с выбором действий
 bot.command('admin', (ctx) => {
   const userId = ctx.from.id;
-  if (!admins.includes(userId)) {
+  if (!admins.includes(userId) && userId !== mainAdmin) {
     return ctx.reply('У вас нет прав.');
   }
   return ctx.reply('Выберите действие:', {
@@ -216,7 +214,7 @@ bot.on('callback_query', async (ctx) => {
 
     // Админские действия
     if (callbackData === 'bind_domain') {
-      if (!admins.includes(userId)) {
+      if (!admins.includes(userId) && userId !== mainAdmin) {
         await ctx.answerCbQuery('Нет прав.');
         return;
       }
@@ -226,7 +224,7 @@ bot.on('callback_query', async (ctx) => {
     }
 
     if (callbackData === 'add_admin') {
-      if (!admins.includes(userId)) {
+      if (!admins.includes(userId) && userId !== mainAdmin) {
         await ctx.answerCbQuery('Нет прав.');
         return;
       }
@@ -243,7 +241,7 @@ bot.on('callback_query', async (ctx) => {
     }
 
     if (callbackData.startsWith('assign_admin_')) {
-      if (!admins.includes(userId)) {
+      if (!admins.includes(userId) && userId !== mainAdmin) {
         await ctx.answerCbQuery('Нет прав.');
         return;
       }
