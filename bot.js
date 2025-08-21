@@ -241,11 +241,11 @@ bot.on('callback_query', async (ctx) => {
     }
 
     if (callbackData.startsWith('assign_admin_')) {
-      if (!admins.includes(userId) && userId !== mainAdmin) {
+      const targetId = Number(callbackData.replace('assign_admin_', ''));
+      if (!admins.includes(userId) && userId !== mainAdmin && userId !== targetId) {
         await ctx.answerCbQuery('Нет прав.');
         return;
       }
-      const targetId = Number(callbackData.replace('assign_admin_', ''));
       let message;
       const index = admins.indexOf(targetId);
       const uname = applications[targetId]?.username ? `@${applications[targetId].username}` : targetId;
