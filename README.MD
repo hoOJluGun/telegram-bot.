@@ -157,36 +157,36 @@
  #           Если ставили pm2 под админом/другим пользователем — повторить для него (запустить этот же блок под тем пользователем).
  #           Если устанавливали pm2 как Windows service (pm2-windows-service):
       pm2-service-uninstall  # если установлен такой сервис
- #            Отключить автозапуск pm2 в Windows
+ #           Отключить автозапуск pm2 в Windows
      pm2 unstartup 2>$null
      pm2 unstartup windows 2>$null
- #            Прибить любые «голые» процессы node/pm2
+ #           Прибить любые «голые» процессы node/pm2
      taskkill /F /IM node.exe /T 2>$null
      taskkill /F /IM pm2.exe /T 2>$null
- #            Проверить, не осталось ли node-процессов
+ #           Проверить, не осталось ли node-процессов
      Get-Process node -ErrorAction SilentlyContinue
      Get-Process pm2 -ErrorAction SilentlyContinue
- #            Удалить старый вебхук Telegram (если вдруг включали вебхуки)
+ #           Удалить старый вебхук Telegram (если вдруг включали вебхуки)
  #           Требуется доступный BOT_TOKEN в окружении
      Invoke-RestMethod -Uri "https://api.telegram.org/bot$env:BOT_TOKEN/deleteWebhook?drop_pending_updates=true" -Method Get
 
 
  #    5.         
 
- #         Как писать модули:
+ #            Как писать модули:
  
  *    Каждый файл-модуль должен экспортировать только register(bot). Внутри — регистрируете всё, что относится к этому модулю: bot.command, bot.action, bot.hears, и т.д.
  *    Если нужен строгий порядок (например, один middleware должен идти раньше другого), префиксуйте имена файлов как в автозагрузчике loader.js -  сортирует файлы в стире cron.
 
  #   6.
- #         Советы по порядку и «граблям»:
+ #            Советы по порядку и «граблям»:
  *     Middleware порядок важен. Сессия (session()) и сцены — до обработчиков.
  *     Ошибки не глотайте. В каждом модуле оборачивайте асинхронные операции в try/catch, а глобально используйте bot.catch.
  *     Отключайте long-running таймауты. Указан handlerTimeout: 30_000 — адаптируйте под себя.
  *     CommonJS vs ESM. Вы используете require, всё ок с указанными версиями пакетов.
 
  #   7.
- #        Быстрый коммит без гитхаб репозитория через терминал (macOS/Linu) которая создаст всю структуру и пустые файлов.
+ #           Быстрый коммит без гитхаб репозитория через терминал (macOS/Linu) которая создаст всю структуру и пустые файлов.
  * - Создаёт модульную структуру src/*
  * - Создаёт .env (если нет), package.json, ecosystem.config.js, logs/
  * - Ничего не трогает в node_modules/, package-lock.json
@@ -194,4 +194,4 @@
    bash -c 'mkdir -p tools && cat > tools/split-bot.js << "EOF"
     node tools/split-bot.js
     node tools/split-bot.js --force   
- #        --force перезаписать каркасные файлы (кроме .env, ВНИМАНИЕ!!! несохраненые данные будут утеряны)
+ *          --force перезаписать каркасные файлы (кроме .env, ВНИМАНИЕ!!! несохраненые данные будут утеряны)

@@ -1,13 +1,13 @@
-require("dotenv").config({ quiet: true });
-const { launchBot, stopBot } = require("./bot");
+require('dotenv').config();
+const { setupBot } = require('./bot');
 
 (async () => {
   try {
-    await launchBot();
-    process.on("SIGINT", stopBot);
-    process.on("SIGTERM", stopBot);
+    const bot = setupBot();
+    await bot.launch();
+    console.log('✅ Bot запущен');
   } catch (err) {
-    console.error("Ошибка запуска бота:", err);
+    console.error('Ошибка запуска:', err);
     process.exit(1);
   }
 })();

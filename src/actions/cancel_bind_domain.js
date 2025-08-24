@@ -1,7 +1,2 @@
-module.exports.register = async (bot) => {
-  bot.action("cancel_bind_domain", async (ctx) => {
-    delete ctx.app.state.domain[ctx.from.id];
-    await ctx.app.ui.show(ctx, "❎ Отменено.");
-    await ctx.answerCbQuery().catch(()=>{});
-  });
-};
+const { domainState } = require('../storage/state');
+module.exports = { action: 'cancel_bind_domain', handler: async (ctx) => { delete domainState[ctx.from.id]; await ctx.reply('Привязка домена отменена.'); await ctx.answerCbQuery(); } };

@@ -1,1 +1,0 @@
-module.exports.register = async () => { /* при необходимости перенесёшь в WizardScene */ };

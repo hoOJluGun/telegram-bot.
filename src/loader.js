@@ -1,30 +1,28 @@
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
-function pickRegistrar(mod, nameForLog) {
-  if (typeof mod === "function") return mod;
-  if (mod && typeof mod.register === "function") return mod.register;
-  if (mod && typeof mod.default === "function") return mod.default;
-  if (mod && mod.default && typeof mod.default.register === "function") return mod.default.register;
-
-  const shape = mod === null ? 'null'
-    : mod === undefined ? 'undefined'
-    : (typeof mod === 'object' ? `object keys=[${Object.keys(mod)}]` : typeof mod);
-  throw new Error(`Модуль ${nameForLog} имеет неподдерживаемый экспорт (${shape}). Ожидается function или { register() }.`);
+function autoLoad(bot, dir, method) {
+  const folder = path.join(__dirname, dir);
+  if (!fs.existsSync(folder)) return;
+  fs.readdirSync(folder).forEach(file => {
+    if (file.endsWith('.js')) {
+      const handler = require(path.join(folder, file));
+      if (typeof handler === 'function') {
+        method(handler, file);
+      } else if (handler.action && handler.handler) {
+        method(handler, file);
+      }
+    }
+  });
 }
 
-module.exports.loadModules = async (bot, moduleList) => {
-  for (const item of moduleList) {
-    const modPath = path.join(__dirname, item + ".js");
-    let mod;
-    try {
-      const resolved = require.resolve(modPath);
-      console.log("[loader] require:", resolved);
-      mod = require(resolved);
-      console.log("[loader] shape:", typeof mod, mod && Object.keys(mod));
-    } catch (e) {
-      throw new Error(`Не удалось require("${modPath}"): ${e.message}`);
-    }
-    const registrar = pickRegistrar(mod, item);
-    await registrar(bot);
-  }
-};
+function loadHandlers(bot) {
+  autoLoad(bot, 'commands', (fn, name) => bot.command(name.replace('.js', ''), fn));
+  autoLoad(bot, 'actions', (mod) => { if (mod.action && mod.handler) bot.action(mod.action, mod.handler); });
+  autoLoad(bot, 'hears', (mod) => {
+    if (mod.hear && mod.handler) bot.hears(mod.hear, mod.handler);
+    else if (typeof mod === 'function') bot.on('text', mod);
+  });
+}
+
+module.exports = { loadHandlers };

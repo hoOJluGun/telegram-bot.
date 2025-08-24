@@ -1,1 +1,0 @@
-module.exports.register = async () => { /* встроенный session подключён в src/bot.js */ };
