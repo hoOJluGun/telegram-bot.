@@ -1,0 +1,1 @@
+module.exports.register = async () => { /* главное меню собираем в /start */ };

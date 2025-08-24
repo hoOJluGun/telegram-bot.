@@ -1,3 +1,2 @@
-node_modules/
 .env
-applications.json
+node_modules/
