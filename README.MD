@@ -69,14 +69,8 @@
  * 
  *        +
  * 
- *    npm install
- *    npm init
- *    npm telegraf
- *    npm dotenv
- *    npm pm2
- *    npm cloudflare
- *    npm fund
- *    npm audit
+ *          npm init -y
+ *          npm install
  #
  #   3.             
  # 
